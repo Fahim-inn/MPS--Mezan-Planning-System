@@ -1,58 +1,176 @@
-import React, { useEffect, useState } from 'react';
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>KetteQ Clone — Scaffold</title>
 
-// KetteQ Clone - Single-file React scaffold // - Minimal, production-ready structure for an adaptive SCM dashboard // - Tailwind utility classes used (no imports required when previewing in the canvas) // - Replace fetch() endpoints with your backend API
+    <!-- Tailwind Play CDN (quick prototyping) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-export default function KetteQCloneDashboard() { const [loading, setLoading] = useState(true); const [scenarioList, setScenarioList] = useState([]); const [inventorySummary, setInventorySummary] = useState({ totalSKUs: 0, stockValue: 0 }); const [selectedScenario, setSelectedScenario] = useState(null); const [solverStatus, setSolverStatus] = useState({ running: false, lastRun: null });
+    <!-- Optional: tweak Tailwind config for nice rounded cards -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            borderRadius: {
+              '2xl': '1rem',
+            },
+          },
+        },
+      };
+    </script>
 
-useEffect(() => { // Example: load initial data from API async function load() { try { // Replace these endpoints with your backend routes const [scRes, invRes, solverRes] = await Promise.all([ fetch('/api/scenarios').then(r => r.json()).catch(() => []), fetch('/api/inventory/summary').then(r => r.json()).catch(() => ({ totalSKUs: 120, stockValue: 234500 })), fetch('/api/solver/status').then(r => r.json()).catch(() => ({ running: false, lastRun: null })), ]); setScenarioList(scRes || []); setInventorySummary(invRes || { totalSKUs: 0, stockValue: 0 }); setSolverStatus(solverRes || { running: false, lastRun: null }); } finally { setLoading(false); } } load(); }, []);
+    <!-- React + ReactDOM (UMD builds) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-async function runSolver() { setSolverStatus(s => ({ ...s, running: true })); try { const res = await fetch('/api/solver/run', { method: 'POST' }).then(r => r.json()); setSolverStatus({ running: false, lastRun: res.timestamp }); // refresh scenarios const sc = await fetch('/api/scenarios').then(r => r.json()).catch(() => []); setScenarioList(sc); } catch (err) { console.error(err); setSolverStatus(s => ({ ...s, running: false })); } }
+    <!-- Babel (for in-browser JSX compilation; fine for demos / GH pages prototypes) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-if (loading) return <div className="p-6">Loading dashboard...</div>;
+    <style>
+      /* small page-wide defaults for nicer preview */
+      html, body, #root { height: 100%; }
+      body { background: #f8fafc; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    </style>
+  </head>
 
-return ( <div className="min-h-screen bg-gray-50 p-6 font-sans"> <header className="mb-6 flex items-center justify-between"> <h1 className="text-2xl font-semibold">ketteQ — Clone (scaffold)</h1> <div className="flex items-center gap-3"> <button
-onClick={runSolver}
-disabled={solverStatus.running}
-className="px-4 py-2 rounded-lg shadow-sm bg-indigo-600 text-white disabled:opacity-60"
-> {solverStatus.running ? 'Running...' : 'Run PolymatiQ-like Solver'} </button> <div className="text-sm text-gray-600">Last run: {solverStatus.lastRun || 'never'}</div> </div> </header>
+  <body>
+    <div id="root"></div>
 
-<main className="grid grid-cols-3 gap-6">
-    <section className="col-span-2 bg-white p-4 rounded-2xl shadow">
-      <h2 className="text-lg font-medium mb-3">Scenario Explorer</h2>
-      {scenarioList.length === 0 ? (
-        <div className="text-sm text-gray-500">No scenarios yet — run the solver to generate scenarios.</div>
-      ) : (
-        <div className="space-y-3">
-          {scenarioList.map(s => (
-            <div key={s.id} className="p-3 border rounded-lg flex justify-between items-center">
-              <div>
-                <div className="font-semibold">{s.name}</div>
-                <div className="text-xs text-gray-500">Impact score: {s.impactScore}</div>
-                <div className="text-xs text-gray-500">Created: {new Date(s.createdAt).toLocaleString()}</div>
+    <!-- App code (JSX) -->
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      function KetteQCloneDashboard() {
+        const [loading, setLoading] = useState(true);
+        const [scenarioList, setScenarioList] = useState([]);
+        const [inventorySummary, setInventorySummary] = useState({ totalSKUs: 0, stockValue: 0 });
+        const [selectedScenario, setSelectedScenario] = useState(null);
+        const [solverStatus, setSolverStatus] = useState({ running: false, lastRun: null });
+
+        useEffect(() => {
+          // load initial data from API (replace endpoints with your backend)
+          async function load() {
+            try {
+              const [scRes, invRes, solverRes] = await Promise.all([
+                fetch('/api/scenarios').then(r => r.ok ? r.json() : []).catch(() => []),
+                fetch('/api/inventory/summary').then(r => r.ok ? r.json() : ({ totalSKUs: 120, stockValue: 234500 })).catch(() => ({ totalSKUs: 120, stockValue: 234500 })),
+                fetch('/api/solver/status').then(r => r.ok ? r.json() : ({ running: false, lastRun: null })).catch(() => ({ running: false, lastRun: null }))
+              ]);
+
+              setScenarioList(Array.isArray(scRes) ? scRes : []);
+              setInventorySummary(invRes || { totalSKUs: 0, stockValue: 0 });
+              setSolverStatus(solverRes || { running: false, lastRun: null });
+            } catch (err) {
+              console.error('Initial load error:', err);
+              // fallback defaults
+              setScenarioList([]);
+              setInventorySummary({ totalSKUs: 0, stockValue: 0 });
+              setSolverStatus({ running: false, lastRun: null });
+            } finally {
+              setLoading(false);
+            }
+          }
+          load();
+        }, []);
+
+        async function runSolver() {
+          setSolverStatus(s => ({ ...s, running: true }));
+          try {
+            const res = await fetch('/api/solver/run', { method: 'POST' }).then(r => r.ok ? r.json() : { timestamp: new Date().toISOString() }).catch(() => ({ timestamp: new Date().toISOString() }));
+            setSolverStatus({ running: false, lastRun: res.timestamp || new Date().toISOString() });
+
+            // refresh scenarios after run
+            const sc = await fetch('/api/scenarios').then(r => r.ok ? r.json() : []).catch(() => []);
+            setScenarioList(Array.isArray(sc) ? sc : []);
+          } catch (err) {
+            console.error('Solver run failed:', err);
+            setSolverStatus(s => ({ ...s, running: false }));
+          }
+        }
+
+        function formatDate(ts) {
+          if (!ts) return 'never';
+          try {
+            const d = new Date(ts);
+            if (isNaN(d)) return String(ts);
+            return d.toLocaleString();
+          } catch {
+            return String(ts);
+          }
+        }
+
+        if (loading) return <div className="p-6">Loading dashboard...</div>;
+
+        return (
+          <div className="min-h-screen bg-gray-50 p-6 font-sans">
+            <header className="mb-6 flex items-center justify-between">
+              <h1 className="text-2xl font-semibold">ketteQ — Clone (scaffold)</h1>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={runSolver}
+                  disabled={solverStatus.running}
+                  className="px-4 py-2 rounded-lg shadow-sm bg-indigo-600 text-white disabled:opacity-60"
+                >
+                  {solverStatus.running ? 'Running...' : 'Run PolymatiQ-like Solver'}
+                </button>
+                <div className="text-sm text-gray-600">Last run: {formatDate(solverStatus.lastRun)}</div>
               </div>
-              <div className="flex gap-2">
-                <button className="px-3 py-1 rounded bg-gray-100">View</button>
-                <button className="px-3 py-1 rounded bg-gray-100">Compare</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+            </header>
 
-    <aside className="bg-white p-4 rounded-2xl shadow">
-      <h2 className="text-lg font-medium mb-3">Inventory Summary</h2>
-      <div className="text-sm text-gray-700">Total SKUs: <span className="font-semibold">{inventorySummary.totalSKUs}</span></div>
-      <div className="text-sm text-gray-700">Stock Value: <span className="font-semibold">{inventorySummary.stockValue}</span></div>
+            <main className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <section className="md:col-span-2 bg-white p-4 rounded-2xl shadow">
+                <h2 className="text-lg font-medium mb-3">Scenario Explorer</h2>
 
-      <div className="mt-6">
-        <h3 className="text-sm font-medium mb-2">Quick actions</h3>
-        <button className="w-full px-3 py-2 rounded-lg border">Create Scenario</button>
-      </div>
-    </aside>
-  </main>
+                {scenarioList.length === 0 ? (
+                  <div className="text-sm text-gray-500">No scenarios yet — run the solver to generate scenarios.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {scenarioList.map((s, idx) => {
+                      const idKey = s && (s.id ?? idx);
+                      const createdAt = s && (s.createdAt ?? s.created_at ?? null);
+                      return (
+                        <div key={idKey} className="p-3 border rounded-lg flex justify-between items-center">
+                          <div>
+                            <div className="font-semibold">{s.name ?? `Scenario ${idx + 1}`}</div>
+                            <div className="text-xs text-gray-500">Impact score: {s.impactScore ?? '—'}</div>
+                            <div className="text-xs text-gray-500">Created: {createdAt ? new Date(createdAt).toLocaleString() : 'unknown'}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => setSelectedScenario(s)} className="px-3 py-1 rounded bg-gray-100">View</button>
+                            <button className="px-3 py-1 rounded bg-gray-100">Compare</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
 
-  <footer className="mt-6 text-xs text-gray-400">Scaffold: replace endpoints with your backend. This is a starting UI to iterate from.</footer>
-</div>
+              <aside className="bg-white p-4 rounded-2xl shadow">
+                <h2 className="text-lg font-medium mb-3">Inventory Summary</h2>
+                <div className="text-sm text-gray-700">Total SKUs: <span className="font-semibold">{inventorySummary.totalSKUs ?? 0}</span></div>
+                <div className="text-sm text-gray-700">Stock Value: <span className="font-semibold">{inventorySummary.stockValue ?? 0}</span></div>
 
-); }
+                <div className="mt-6">
+                  <h3 className="text-sm font-medium mb-2">Quick actions</h3>
+                  <button
+                    onClick={() => alert('Create Scenario — hook this to your UI / modal')}
+                    className="w-full px-3 py-2 rounded-lg border"
+                  >Create Scenario</button>
+                </div>
+              </aside>
+            </main>
+
+            <footer className="mt-6 text-xs text-gray-400">Scaffold: replace endpoints with your backend. This is a starting UI to iterate from.</footer>
+          </div>
+        );
+      }
+
+      // Render to DOM
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<KetteQCloneDashboard />);
+    </script>
+  </body>
+</html>
